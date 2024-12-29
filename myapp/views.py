@@ -235,9 +235,15 @@ def employee_list(request):
 def employee_create(request):
     if request.method == "POST":
         data = json.loads(request.body)
-        
+
         # Print incoming data for debugging
         print("Received data:", data)
+
+        # If using ForeignKey relations, ensure the IDs are provided in the data
+        data['company'] = CompanyMaster.objects.get(id=data['company_id']) if 'company_id' in data else None
+        data['branch'] = BranchMaster.objects.get(id=data['branch_id']) if 'branch_id' in data else None
+        data['project'] = ProjectMaster.objects.get(id=data['project_id']) if 'project_id' in data else None
+        data['username'] = UserRegistration.objects.get(id=data['username_id']) if 'username_id' in data else None
 
         form = EmployeeMasterForm(data)
         if form.is_valid():
@@ -263,29 +269,41 @@ def employee_update(request, employee_code):
         for key, value in data.items():
             if hasattr(employee, key):
                 setattr(employee, key, value)
-        
-        # If you want to update the ForeignKey relationships as well
-        if 'branch_code' in data:
+
+        # Handle ForeignKey relationships
+        if 'branch_id' in data:
             try:
-                branch = BranchMaster.objects.get(branch_code=data['branch_code'])
-                employee.branch_code = branch
+                branch = BranchMaster.objects.get(id=data['branch_id'])
+                employee.branch = branch
             except BranchMaster.DoesNotExist:
                 return JsonResponse({"error": "Branch not found"}, status=404)
 
-        if 'designation_id' in data:
+        if 'company_id' in data:
             try:
-                designation = DesignationMaster.objects.get(designation_id=data['designation_id'])
-                employee.designation = designation
-            except DesignationMaster.DoesNotExist:
-                return JsonResponse({"error": "Designation not found"}, status=404)
+                company = CompanyMaster.objects.get(id=data['company_id'])
+                employee.company = company
+            except CompanyMaster.DoesNotExist:
+                return JsonResponse({"error": "Company not found"}, status=404)
+
+        if 'project_id' in data:
+            try:
+                project = ProjectMaster.objects.get(id=data['project_id'])
+                employee.project = project
+            except ProjectMaster.DoesNotExist:
+                return JsonResponse({"error": "Project not found"}, status=404)
+
+        if 'username_id' in data:
+            try:
+                user = UserRegistration.objects.get(id=data['username_id'])
+                employee.username = user
+            except UserRegistration.DoesNotExist:
+                return JsonResponse({"error": "User not found"}, status=404)
 
         employee.save()
 
         return JsonResponse({"message": "Employee updated successfully!"}, status=200)
-    
+
     return JsonResponse({"error": "PUT method expected"}, status=400)
-
-
 @csrf_exempt
 def employee_delete(request, employee_code):
     if request.method == "DELETE":
@@ -298,37 +316,23 @@ def employee_delete(request, employee_code):
         return JsonResponse({"message": "Employee deleted successfully!"}, status=200)
 
     return JsonResponse({"error": "DELETE method expected"}, status=400)
-
-
-
 @csrf_exempt
 def employee_detail(request, employee_code):
-    employee = get_object_or_404(EmployeeMaster, employee_code=employee_code)
+    pass
+    # try:
+    #     employee = EmployeeMaster.objects.select_related(
+    #         'company', 'branch', 'reporting_branch', 'project', 'username'
+    #     ).get(employee_code=employee_code)
+    # except EmployeeMaster.DoesNotExist:
+    #     return JsonResponse({"error": "Employee not found"}, status=404)
 
-    if request.method == "GET":
-        # Return employee data as JSON
-        return JsonResponse({"employee": model_to_dict(employee)})
+    # if request.method == "GET":
+    #     # Return employee data along with related objects as JSON
+    #     return JsonResponse({
+    #         "employee": model_to_dict(employee, fields=['employee_master_id', 'employee_code', 'employee_name', 'company__name', 'branch__name', 'project__name', 'username__username'])
+    #     })
 
-    if request.method == "PUT":
-        # Update employee data
-        data = json.loads(request.body)
-        form = EmployeeMasterForm(data, instance=employee)
-        
-        if form.is_valid():
-            form.save()
-            return JsonResponse({"message": "Employee updated successfully"})
-        
-        return JsonResponse({"error": form.errors}, status=400)
-
-    if request.method == "DELETE":
-        # Delete employee record
-        employee.delete()
-        return JsonResponse({"message": "Employee deleted successfully"})
-
-    return JsonResponse({"error": "Method not allowed"}, status=405)
-
-
-
+    # return JsonResponse({"error": "Method not allowed"}, status=405)
 
 # ----------project-----------
 # List all projects
