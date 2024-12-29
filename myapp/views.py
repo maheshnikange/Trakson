@@ -229,8 +229,6 @@ def employee_list(request):
         return JsonResponse({"employees": employees}, safe=False)
     return JsonResponse({"error": "GET method expected"}, status=400)
 
-
-
 @csrf_exempt
 def employee_create(request):
     if request.method == "POST":
@@ -239,21 +237,42 @@ def employee_create(request):
         # Print incoming data for debugging
         print("Received data:", data)
 
-        # If using ForeignKey relations, ensure the IDs are provided in the data
-        data['company'] = CompanyMaster.objects.get(id=data['company_id']) if 'company_id' in data else None
-        data['branch'] = BranchMaster.objects.get(id=data['branch_id']) if 'branch_id' in data else None
-        data['project'] = ProjectMaster.objects.get(id=data['project_id']) if 'project_id' in data else None
-        data['username'] = UserRegistration.objects.get(id=data['username_id']) if 'username_id' in data else None
+        try:
+            # Retrieve the ForeignKey objects based on the provided IDs
+            company = CompanyMaster.objects.get(company_master_id=data['company']) if 'company' in data else None
+            branch = BranchMaster.objects.get(branch_master_id=data['branch']) if 'branch' in data else None
+            reporting_branch = BranchMaster.objects.get(branch_master_id=data['reporting_branch']) if 'reporting_branch' in data else None
+            project = ProjectMaster.objects.get(project_master_id=data['project']) if 'project' in data else None
+            username = UserRegistration.objects.get(user_id=data['username']) if 'username' in data else None
 
-        form = EmployeeMasterForm(data)
-        if form.is_valid():
-            employee = form.save()
-            return JsonResponse({"message": "Employee created", "employee_id": employee.id}, status=201)
-        else:
-            print("Form errors:", form.errors)
-            return JsonResponse({"error": form.errors}, status=400)
+            # Add the ForeignKey objects to the data dictionary
+            data['company'] = company
+            data['branch'] = branch
+            data['reporting_branch'] = reporting_branch
+            data['project'] = project
+            data['username'] = username
+
+            # Create the form with the updated data
+            form = EmployeeMasterForm(data)
+            if form.is_valid():
+                employee = form.save()
+                return JsonResponse({"message": "Employee created", "employee_code": employee.employee_code}, status=201)
+            else:
+                print("Form errors:", form.errors)
+                return JsonResponse({"error": form.errors}, status=400)
+
+        except CompanyMaster.DoesNotExist:
+            return JsonResponse({"error": "Company not found"}, status=400)
+        except BranchMaster.DoesNotExist:
+            return JsonResponse({"error": "Branch not found"}, status=400)
+        except ProjectMaster.DoesNotExist:
+            return JsonResponse({"error": "Project not found"}, status=400)
+        except UserRegistration.DoesNotExist:
+            return JsonResponse({"error": "User not found"}, status=400)
 
     return JsonResponse({"error": "POST method expected"}, status=400)
+
+
 
 @csrf_exempt
 def employee_update(request, employee_code):
