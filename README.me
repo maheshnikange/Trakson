@@ -72,30 +72,35 @@ branch create
 }
 
 
-designation
-{
-    "designation_code": "D001",
-    "designation_name": "Software Engineer",
-    "designation_grade": "G1",
-    "designation_function": "Software Development",
-    "salary_range_min": 50000.00,
-    "salary_range_max": 100000.00,
-    "designation_type": "Full-Time",
-    "job_level": "Mid",
-    "work_hours_per_week": 40,
-    "bonus_percentage": 15.00,
-    "health_benefits": true,
-    "vacation_days": 20,
-    "contract_end_date": "2025-12-31",
-    "reporting_manag_code": "MGR01",
-    "is_remote": false,
-    "contract_renewal_option": true,
-    "equity_grant": true,
-    "performance_review_period": "Annual",
-    "job_posting_url": "http://example.com/job-posting",
-    "career_path": "Junior Developer -> Senior Developer -> Lead Developer",
-    "last_promotion_date": "2023-01-01",
-    "created_by": "admin",
-    "modified_by": "admin",
-    "status": "Active"
-}
+class CustomerMaster(models.Model):
+    customer_master_id = models.BigAutoField(primary_key=True)
+    customer_code = models.CharField(max_length=8, unique=True)
+    company_code = models.ForeignKey(
+        'CompanyMaster',  # Reference the `BranchMaster` model
+        on_delete=models.CASCADE,
+        related_name='customers'
+    )
+    customer_name = models.CharField(max_length=200)
+    contact_person = models.CharField(max_length=200, null=True, blank=True)
+    customer_type = models.CharField(max_length=200)
+    customer_industry = models.CharField(max_length=200)
+    street_address = models.CharField(max_length=255, null=True, blank=True)
+    city = models.CharField(max_length=200)
+    state = models.CharField(max_length=200)
+    postal_code = models.CharField(max_length=6)
+    country = models.CharField(max_length=200)
+    country_code = models.CharField(max_length=5)
+    phone_number = models.CharField(max_length=15, null=True, blank=True)
+    email = models.EmailField(max_length=255, unique=True, null=True, blank=True)
+    fax_number = models.CharField(max_length=15, null=True, blank=True)
+    website = models.URLField(max_length=255, null=True, blank=True)
+    customer_details = models.CharField(max_length=200, null=True, blank=True)
+    created_at = models.DateTimeField(default=now)
+    created_by = models.CharField(max_length=200)
+    modified_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    modified_by = models.CharField(max_length=200)
+    status = models.CharField(max_length=20, default='Active')
+
+    def __str__(self):
+        return f"{self.customer_name} ({self.customer_code})"
+
